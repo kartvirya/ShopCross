@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { scrapeProductDetails } from "./scraper/scraper";
+import { scrapeProductDetails, type ScrapedProductData } from "./scraper/scraper";
 import { getCurrencyRate } from "./services/currency";
 import { calculateTotalCost } from "./services/calculator";
 import { urlSchema, ProductDetails } from "@shared/schema";
@@ -21,8 +21,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cachedResult);
       }
       
-      // Scrape product details
-      const productData = await scrapeProductDetails(url);
+      // Set a timeout for the scraping operation
+      const timeout = 12000; // 12 seconds timeout
+      
+      // Create a promise that will be rejected after the timeout
+      const timeoutPromise: Promise<never> = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Scraping timed out after 12 seconds')), timeout);
+      });
+      
+      // Race the scraping against the timeout
+      const productData: ScrapedProductData = await Promise.race([
+        scrapeProductDetails(url),
+        timeoutPromise
+      ]);
       
       // Get latest exchange rate
       const exchangeRate = await getCurrencyRate();
@@ -57,8 +68,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Handle timeout errors specially
+      const errorMessage = error instanceof Error
+        ? (error.message.includes('timed out')
+            ? "The website took too long to respond. This may be due to website restrictions. Try a different product or website."
+            : error.message)
+        : "Failed to fetch product details";
+      
       return res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to fetch product details"
+        message: errorMessage
       });
     }
   });

@@ -1,1 +1,0 @@
-web: node --experimental-modules start-production.js

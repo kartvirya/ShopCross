@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ProductForm from "@/components/ProductForm";
 import ProductDetails from "@/components/ProductDetails";
 import CostBreakdown from "@/components/CostBreakdown";
@@ -32,8 +30,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
       <main className="flex-grow">
         {/* Hero Section */}
         <div className="bg-primary-700 text-white">
@@ -81,8 +77,6 @@ export default function Home() {
           <HowItWorks />
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 }

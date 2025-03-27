@@ -14,29 +14,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Validate URL
       const { url } = urlSchema.parse(req.body);
+      console.log(`Processing scrape request for URL: ${url}`);
       
       // Check cache first
       const cachedResult = await storage.getProductByUrl(url);
       if (cachedResult) {
+        console.log(`Returning cached result for ${url}`);
         return res.json(cachedResult);
       }
       
       // Set a timeout for the scraping operation
-      const timeout = 12000; // 12 seconds timeout
+      const timeout = 15000; // 15 seconds timeout (increased from 12)
       
       // Create a promise that will be rejected after the timeout
       const timeoutPromise: Promise<never> = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Scraping timed out after 12 seconds')), timeout);
+        setTimeout(() => reject(new Error('Scraping timed out after 15 seconds')), timeout);
       });
       
       // Race the scraping against the timeout
-      const productData: ScrapedProductData = await Promise.race([
-        scrapeProductDetails(url),
-        timeoutPromise
-      ]);
+      let productData: ScrapedProductData;
+      try {
+        productData = await Promise.race([
+          scrapeProductDetails(url),
+          timeoutPromise
+        ]);
+        console.log(`Successfully scraped data for ${url}`);
+      } catch (scrapeError) {
+        console.error(`Scraping failed for ${url}:`, scrapeError);
+        
+        // Provide more specific error messages based on error type
+        if (scrapeError instanceof Error) {
+          const errorMessage = scrapeError.message;
+          
+          if (errorMessage.includes('timed out')) {
+            return res.status(504).json({ 
+              message: "The product page took too long to process. This might be due to a complex page or the website blocking our request. Please try again later or with a different product.",
+              error: "Scraping timed out",
+              statusCode: 504
+            });
+          } else if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNREFUSED')) {
+            return res.status(502).json({
+              message: "Unable to reach the e-commerce website. The site might be experiencing issues.",
+              error: "Connection failed",
+              statusCode: 502
+            });
+          } else if (errorMessage.includes('find product') || errorMessage.includes('Could not find')) {
+            return res.status(404).json({
+              message: "We couldn't extract the product details from the provided URL. The product page structure might have changed or the product is no longer available.",
+              error: "Product information not found",
+              statusCode: 404
+            });
+          }
+        }
+        
+        // Rethrow for the main catch block to handle
+        throw scrapeError;
+      }
       
       // Get latest exchange rate
-      const exchangeRate = await getCurrencyRate();
+      let exchangeRate: number;
+      try {
+        exchangeRate = await getCurrencyRate();
+        console.log(`Current exchange rate: ${exchangeRate}`);
+      } catch (rateError) {
+        console.error("Failed to get exchange rate:", rateError);
+        // Use fallback rate if API fails (1.60 is a reasonable NPR/INR rate)
+        exchangeRate = 1.60;
+        console.log(`Using fallback exchange rate: ${exchangeRate}`);
+      }
       
       // Calculate costs
       const costBreakdown = calculateTotalCost(productData.price, exchangeRate);
@@ -56,27 +101,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Save to cache
-      await storage.cacheProductDetails(url, productDetails);
+      try {
+        await storage.cacheProductDetails(url, productDetails);
+        console.log(`Cached product details for ${url}`);
+      } catch (cacheError) {
+        // Log but don't fail if caching fails
+        console.error(`Failed to cache product details for ${url}:`, cacheError);
+      }
       
       return res.json(productDetails);
     } catch (error) {
-      console.error("Error scraping product:", error);
+      console.error("Error processing scrape request:", error);
       
       if (error instanceof ZodError) {
         return res.status(400).json({ 
-          message: fromZodError(error).message || "Invalid URL format"
+          message: fromZodError(error).message || "Invalid URL format",
+          error: "Invalid input",
+          statusCode: 400
         });
       }
       
-      // Handle timeout errors specially
+      // General error handler
       const errorMessage = error instanceof Error
-        ? (error.message.includes('timed out')
-            ? "The website took too long to respond. This may be due to website restrictions. Try a different product or website."
-            : error.message)
+        ? error.message
         : "Failed to fetch product details";
       
       return res.status(500).json({ 
-        message: errorMessage
+        message: errorMessage,
+        error: "Processing failed",
+        statusCode: 500
       });
     }
   });
@@ -85,11 +138,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/exchange-rate", async (_req: Request, res: Response) => {
     try {
       const rate = await getCurrencyRate();
-      return res.json({ rate });
+      console.log(`Successfully retrieved exchange rate: ${rate}`);
+      return res.json({ 
+        rate,
+        success: true,
+        source: "API",
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error("Error fetching exchange rate:", error);
-      return res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to fetch exchange rate"
+      
+      // Use fallback rate if API fails
+      const fallbackRate = 1.60;
+      console.log(`Using fallback exchange rate: ${fallbackRate}`);
+      
+      return res.status(200).json({ 
+        rate: fallbackRate,
+        success: true,
+        source: "Fallback",
+        timestamp: new Date().toISOString(),
+        message: "Using fallback exchange rate due to API issues",
+        note: "This is an estimated rate and may not reflect current market conditions"
       });
     }
   });

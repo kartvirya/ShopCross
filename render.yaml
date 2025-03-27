@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: indian-product-price-calculator
+    env: node
+    buildCommand: npm run build
+    startCommand: node --experimental-modules start-production.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    plan: free
+    autoDeploy: true

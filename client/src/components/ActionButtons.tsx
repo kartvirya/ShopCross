@@ -14,66 +14,56 @@ export default function ActionButtons({ productDetails, handleCalculateAnother }
     const { product, costBreakdown } = productDetails;
     
     // Document title
-    doc.setFontSize(18);
+    doc.setFontSize(20);
     doc.setTextColor(33, 99, 232);
-    doc.text("NepalShippr - Cost Breakdown", 15, 20);
+    doc.text("NepalShippr - Cost Breakdown", 20, 20);
     
     // Product details
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text("Product Details", 15, 30);
+    doc.text("Product Details", 20, 35);
     
-    doc.setFontSize(11);
-    doc.text(`Product: ${product.title}`, 15, 40);
-    doc.text(`Original Price: ${product.originalPrice}`, 15, 48);
-    if (product.category) doc.text(`Category: ${product.category}`, 15, 56);
-    if (product.weight) doc.text(`Weight: ${product.weight}`, 15, 64);
-    if (product.seller) doc.text(`Seller: ${product.seller}`, 15, 72);
-    doc.text(`Website: ${product.website}`, 15, 80);
+    doc.setFontSize(12);
+    doc.text(`Product: ${product.title}`, 20, 45);
+    doc.text(`Original Price: ${product.originalPrice}`, 20, 55);
+    if (product.category) doc.text(`Category: ${product.category}`, 20, 65);
+    if (product.weight) doc.text(`Weight: ${product.weight}`, 20, 75);
+    if (product.seller) doc.text(`Seller: ${product.seller}`, 20, 85);
     
     // Cost breakdown
+    doc.setFontSize(16);
+    doc.text("Cost Breakdown", 20, 100);
+    
+    doc.setFontSize(12);
+    doc.text(`Product Price (INR): ${costBreakdown.productPriceINR}`, 20, 110);
+    doc.text(`Exchange Rate: ${costBreakdown.exchangeRate.toFixed(2)}`, 20, 120);
+    doc.text(`Product Price (NPR): ${costBreakdown.productPriceNPR}`, 20, 130);
+    doc.text(`Customs Duty (30%): ${costBreakdown.customsDuty}`, 20, 140);
+    doc.text(`Shipping Cost: ${costBreakdown.shippingCost}`, 20, 150);
+    
     doc.setFontSize(14);
-    doc.text("Cost Breakdown", 15, 95);
-    
-    doc.setFontSize(11);
-    doc.text(`Product Price (INR): ${costBreakdown.productPriceINR}`, 15, 105);
-    doc.text(`Exchange Rate: ${costBreakdown.exchangeRate.toFixed(2)}`, 15, 113);
-    doc.text(`Product Price (NPR): ${costBreakdown.productPriceNPR}`, 15, 121);
-    doc.text(`Customs Duty (30%): ${costBreakdown.customsDuty}`, 15, 129);
-    doc.text(`Shipping Cost: ${costBreakdown.shippingCost}`, 15, 137);
-    
-    doc.setFontSize(13);
     doc.setTextColor(33, 99, 232);
-    doc.text(`Total Cost (NPR): ${costBreakdown.totalCostNPR}`, 15, 150);
+    doc.text(`Total Cost (NPR): ${costBreakdown.totalCostNPR}`, 20, 165);
     
     // Footer
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("Disclaimer: These calculations are estimates. Actual costs may vary.", 15, 170);
-    doc.text(`Generated on ${new Date().toLocaleDateString()}`, 15, 175);
+    doc.text("Disclaimer: These calculations are estimates. Actual costs may vary.", 20, 180);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, 20, 185);
     
-    doc.save("product-cost-breakdown.pdf");
+    doc.save("nepalshippr-cost-breakdown.pdf");
   };
 
   return (
-    <div className="flex flex-wrap gap-2 justify-end">
-      <Button 
-        onClick={handleCalculateAnother} 
-        variant="outline" 
-        size="sm"
-        className="border-gray-300 text-gray-700"
-      >
-        <ArrowLeft className="mr-1 h-4 w-4 text-gray-500" />
-        Calculate Another
+    <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
+      <Button onClick={generatePDF} className="bg-primary-600 hover:bg-primary-700">
+        <Download className="-ml-1 mr-2 h-5 w-5" />
+        Save as PDF
       </Button>
       
-      <Button 
-        onClick={generatePDF} 
-        size="sm"
-        className="bg-primary-600 hover:bg-primary-700"
-      >
-        <Download className="mr-1 h-4 w-4" />
-        Save PDF
+      <Button variant="outline" onClick={handleCalculateAnother} className="border-gray-300 text-gray-700">
+        <ArrowLeft className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
+        Calculate Another Product
       </Button>
     </div>
   );

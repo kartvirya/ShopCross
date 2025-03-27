@@ -1,7 +1,6 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ErrorStateProps {
   errorMessage: string;
@@ -10,24 +9,26 @@ interface ErrorStateProps {
 
 export default function ErrorState({ errorMessage, handleTryAgain }: ErrorStateProps) {
   return (
-    <Card className="shadow rounded-lg p-6 mb-8">
+    <Card className="shadow rounded-lg p-4 mb-4 border-red-200">
       <CardContent className="p-0">
-        <Alert variant="destructive">
-          <AlertCircle className="h-5 w-5" />
-          <AlertTitle>Error retrieving product details</AlertTitle>
-          <AlertDescription>
-            {errorMessage || "We couldn't fetch details from this URL. The site might be blocking our access or the URL could be invalid. Please try another product or contact us for help."}
-          </AlertDescription>
-          <div className="mt-4">
+        <div className="flex items-start space-x-3">
+          <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-red-800 mb-1">Error retrieving product details</h3>
+            <p className="text-xs text-red-700 mb-3">
+              {errorMessage || "We couldn't fetch details from this URL. The site might be blocking our access or the URL could be invalid."}
+            </p>
             <Button 
               variant="outline" 
+              size="sm"
               className="text-red-700 border-red-200 hover:bg-red-50"
               onClick={handleTryAgain}
             >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
               Try Again
             </Button>
           </div>
-        </Alert>
+        </div>
       </CardContent>
     </Card>
   );

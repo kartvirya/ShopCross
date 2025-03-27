@@ -29,24 +29,24 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <main className="flex-grow">
         {/* Hero Section */}
-        <div className="bg-primary-700 text-white">
-          <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-r from-primary-700 to-primary-600 text-white">
+          <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-3xl font-bold sm:text-4xl">
+              <h1 className="text-xl font-bold sm:text-2xl md:text-3xl">
                 <span className="block">Calculate the Real Cost of Indian Products</span>
-                <span className="block text-primary-200">Delivered to Nepal</span>
+                <span className="block text-primary-200 text-lg sm:text-xl">Delivered to Nepal</span>
               </h1>
-              <p className="mt-3 max-w-md mx-auto text-primary-100 sm:text-lg md:mt-5 md:max-w-3xl">
+              <p className="mt-2 max-w-md mx-auto text-primary-100 text-sm sm:text-base">
                 Paste any product link from Amazon India, Flipkart, or Myntra and get the total cost including customs duty, shipping, and currency conversion.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <ProductForm 
             setIsLoading={setIsLoading}
             setHasError={setHasError}
@@ -64,7 +64,7 @@ export default function Home() {
           )}
           
           {productDetails && !isLoading && !hasError && (
-            <div className="space-y-8">
+            <div className="space-y-3">
               <ProductDetails product={productDetails.product} />
               <CostBreakdown costBreakdown={productDetails.costBreakdown} />
               <ActionButtons 
@@ -74,7 +74,9 @@ export default function Home() {
             </div>
           )}
 
-          <HowItWorks />
+          <div className="mt-5">
+            <HowItWorks />
+          </div>
         </div>
       </main>
     </div>

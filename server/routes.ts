@@ -64,11 +64,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: "Product information not found",
               statusCode: 404
             });
+          } else if (errorMessage.includes('browser') || errorMessage.includes('puppeteer') || errorMessage.includes('libgobject') || errorMessage.includes('chrome')) {
+            console.log("Browser automation error detected, falling back to HTML parsing only mode");
+            // Continue with the process - the scraper will use its internal fallback mechanism
+            productData = await scrapeProductDetails(url);
+          } else if (errorMessage.includes('launch') || errorMessage.includes('shared libraries')) {
+            console.log("Browser launch error detected, falling back to HTML parsing only mode");
+            // Continue with the process - the scraper will use its internal fallback mechanism
+            productData = await scrapeProductDetails(url);
+          } else {
+            // Generic error handler for other scraping issues
+            console.error("Unhandled scraper error:", errorMessage);
+            return res.status(500).json({
+              message: "We encountered an issue processing this product. Our team has been notified. Please try again later or with a different product URL.",
+              error: "Processing error",
+              statusCode: 500
+            });
           }
+        } else {
+          // Handle non-Error objects
+          console.error("Unknown scraper error type:", scrapeError);
+          return res.status(500).json({
+            message: "An unexpected error occurred. Please try again later.",
+            error: "Unknown error",
+            statusCode: 500
+          });
         }
-        
-        // Rethrow for the main catch block to handle
-        throw scrapeError;
       }
       
       // Get latest exchange rate

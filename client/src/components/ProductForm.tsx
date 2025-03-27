@@ -50,15 +50,51 @@ export default function ProductForm({
       
     } catch (error) {
       setHasError(true);
+      
+      // Define a friendly message based on error
+      let userFriendlyMessage = "An unexpected error occurred. Please try again.";
+      let errorTitle = "Error";
+      let errorDetail = "";
+      
       if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("An unexpected error occurred. Please try again.");
+        errorDetail = error.message;
+        
+        // Parse message for specific error types and create user-friendly messages
+        if (error.message.includes("timed out")) {
+          userFriendlyMessage = "The product page took too long to load. This might be due to a complex page or site traffic. Please try again later.";
+          errorTitle = "Timeout";
+        } else if (error.message.includes("blocked") || error.message.includes("access")) {
+          userFriendlyMessage = "This website might be blocking our access. Try a different product or website.";
+          errorTitle = "Access Blocked";
+        } else if (error.message.includes("connection") || error.message.includes("network")) {
+          userFriendlyMessage = "Network connection issue. Please check your internet and try again.";
+          errorTitle = "Connection Error";
+        } else if (error.message.includes("find product") || error.message.includes("not found")) {
+          userFriendlyMessage = "We couldn't extract this product's details. The page structure may have changed or the product is unavailable.";
+          errorTitle = "Product Not Found";
+        } else if (error.message.includes("browser") || error.message.includes("puppeteer")) {
+          userFriendlyMessage = "We had a technical issue processing this request. Please try again.";
+          errorTitle = "Processing Error";
+        } else {
+          // Use the server-provided message if we don't have a specific friendly version
+          userFriendlyMessage = error.message;
+        }
       }
+      
+      // Set the error message for display in the UI
+      setErrorMessage(userFriendlyMessage);
+      
+      // Show toast with more context
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch product details",
+        title: errorTitle,
+        description: userFriendlyMessage,
         variant: "destructive",
+      });
+      
+      // Log the detailed error to console for debugging
+      console.error("Product scraping error:", {
+        message: userFriendlyMessage,
+        detail: errorDetail
       });
     } finally {
       setIsLoading(false);

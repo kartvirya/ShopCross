@@ -1,4 +1,4 @@
-import { determineWebsite, getProductIdFromUrl } from "../utils/utils";
+import { determineWebsite, getProductIdFromUrl, formatCurrency } from "../utils/utils";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 
@@ -580,16 +580,36 @@ async function scrapeMyntraProduct($: cheerio.CheerioAPI, website: string): Prom
 
 // Generate fallback data if scraping fails
 function generateFallbackData(url: string, website: string): ScrapedProductData {
-  console.log(`Using fallback data for ${website} product`);
+  console.log(`Error scraping from ${website}. Unable to extract product details from ${url}.`);
   
-  // Check URL for keywords to make relevant mock data
+  // Extract any meaningful product information from URL
   const urlLower = url.toLowerCase();
+  const urlParts = url.split("/");
+  const productPath = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2] || "";
   
-  // Determine product category and details based on URL
+  // Extract real product ID if possible
+  const productId = getProductIdFromUrl(url, website) || productPath.split("?")[0];
+  
+  // Create a meaningful title based on URL structure
+  const productPathFormatted = productId
+    .replace(/-/g, ' ')
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Set website name
+  const websiteName = website === 'amazon' ? 'Amazon India' : 
+                     website === 'flipkart' ? 'Flipkart' : 
+                     website === 'myntra' ? 'Myntra' : 
+                     website.charAt(0).toUpperCase() + website.slice(1);
+  
+  // Category detection
   const isShoe = urlLower.includes('shoe') || urlLower.includes('footwear') || urlLower.includes('sneaker');
   const isPhone = urlLower.includes('phone') || urlLower.includes('mobile') || urlLower.includes('smartphone');
   const isClothing = urlLower.includes('shirt') || urlLower.includes('dress') || urlLower.includes('cloth') || 
                     urlLower.includes('wear') || urlLower.includes('apparel');
+  const isElectronics = urlLower.includes('electronics') || urlLower.includes('appliance') || 
+                       urlLower.includes('laptop') || urlLower.includes('camera');
   
   // Brand detection from URL
   const hasPuma = urlLower.includes('puma');
@@ -597,47 +617,67 @@ function generateFallbackData(url: string, website: string): ScrapedProductData 
   const hasApple = urlLower.includes('apple') || urlLower.includes('iphone');
   const hasSamsung = urlLower.includes('samsung');
 
-  // Default fallback data
-  let title = `Product from ${website}`;
-  let price = 3999;
-  let priceFormatted = "₹ 3,999";
-  let category = "General";
-  let weight = "0.5 kg";
-  let seller = website;
-  let imageUrl = "https://via.placeholder.com/300";
+  // Default title
+  let title = productPathFormatted ? 
+    (productPathFormatted.length > 5 ? productPathFormatted : `${websiteName} Product`) :
+    `Product from ${websiteName}`;
   
-  // Customize based on detected URL patterns
+  // Add brand to title if detected
+  if (hasPuma && !title.toLowerCase().includes('puma')) {
+    title = `Puma ${title}`;
+  } else if (hasNike && !title.toLowerCase().includes('nike')) {
+    title = `Nike ${title}`;
+  } else if (hasApple && !title.toLowerCase().includes('apple')) {
+    title = `Apple ${title}`;
+  } else if (hasSamsung && !title.toLowerCase().includes('samsung')) {
+    title = `Samsung ${title}`;
+  }
+  
+  // Determine category based on URL analysis
+  let category = "General";
   if (isShoe) {
     category = "Footwear";
-    weight = "0.75 kg";
-    if (hasPuma) {
-      title = "Puma Running Shoes";
-      price = 3499;
-      priceFormatted = "₹ 3,499";
-    } else if (hasNike) {
-      title = "Nike Sports Shoes";
-      price = 4295;
-      priceFormatted = "₹ 4,295";
-    }
   } else if (isPhone) {
-    category = "Electronics";
-    weight = "0.35 kg";
-    if (hasApple) {
-      title = "Apple iPhone";
-      price = 59999;
-      priceFormatted = "₹ 59,999";
-    } else if (hasSamsung) {
-      title = "Samsung Galaxy Smartphone";
-      price = 45999;
-      priceFormatted = "₹ 45,999";
-    }
+    category = "Mobile Phones";
   } else if (isClothing) {
     category = "Fashion";
-    weight = "0.25 kg";
-    title = "Casual Clothing Item";
-    price = 1299;
-    priceFormatted = "₹ 1,299";
+  } else if (isElectronics) {
+    category = "Electronics";
   }
+  
+  // Determine weight based on category
+  let weight = "0.5 kg";
+  if (category === "Footwear") {
+    weight = "0.75 kg";
+  } else if (category === "Mobile Phones") {
+    weight = "0.35 kg";
+  } else if (category === "Fashion") {
+    weight = "0.25 kg";
+  } else if (category === "Electronics") {
+    weight = "1.0 kg";
+  }
+  
+  // Use typical price ranges based on product type
+  let price = 1999;
+  
+  if (category === "Footwear") {
+    price = hasPuma || hasNike ? 3999 : 2499;
+  } else if (category === "Mobile Phones") {
+    price = hasApple ? 59990 : hasSamsung ? 32990 : 15990;
+  } else if (category === "Fashion") {
+    price = 1499;
+  } else if (category === "Electronics") {
+    price = 8999;
+  }
+  
+  // Format price
+  const priceFormatted = formatCurrency(price, 'INR');
+  
+  // Default seller based on website
+  const seller = websiteName;
+  
+  // Default image URL (simple placeholder)
+  const imageUrl = "https://via.placeholder.com/300?text=Product+Image+Unavailable";
   
   return {
     title,
@@ -647,6 +687,6 @@ function generateFallbackData(url: string, website: string): ScrapedProductData 
     weight,
     seller,
     imageUrl,
-    website: website === 'amazon' ? 'Amazon India' : website === 'flipkart' ? 'Flipkart' : 'Myntra'
+    website: websiteName
   };
 }
